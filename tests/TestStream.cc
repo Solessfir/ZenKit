@@ -141,6 +141,54 @@ TEST_SUITE("Read") {
 		CHECK(r->eof());
 		CHECK(r->read_line(true).empty());
 	}
+
+	TEST_CASE("Read.read_line_then_ignore(memory matches generic)") {
+		// Reader without the memory fast path, so the generic char-by-char implementation runs
+		class Generic final : public zenkit::Read {
+		public:
+			explicit Generic(std::string_view s) : _m_s(s) {}
+			size_t read(void* buf, size_t len) noexcept override {
+				len = std::min(len, _m_s.size() - _m_pos);
+				memcpy(buf, _m_s.data() + _m_pos, len);
+				_m_pos += len;
+				return len;
+			}
+			void seek(zenkit::ssize_t off, zenkit::Whence) noexcept override {
+				_m_pos = size_t(std::ptrdiff_t(_m_pos) + off);
+			}
+			[[nodiscard]] size_t tell() const noexcept override {
+				return _m_pos;
+			}
+			[[nodiscard]] bool eof() const noexcept override {
+				return _m_pos >= _m_s.size();
+			}
+
+		private:
+			std::string_view _m_s;
+			size_t _m_pos = 0;
+		};
+
+		std::string_view const inputs[] = {
+		    std::string_view("a\r\n\t b\n\nc", 9),
+		    std::string_view("x\n  \0y\n", 7),
+		    std::string_view("x\n \0", 4),
+		    std::string_view("\0\0a\n", 4),
+		    std::string_view("abc", 3),
+		    std::string_view("a\n   ", 5),
+		};
+		for (auto in : inputs) {
+			for (auto chars : {std::string_view(""), std::string_view(" \t\r\n")}) {
+				std::vector<std::byte> buf(in.size());
+				memcpy(buf.data(), in.data(), in.size());
+				auto fast = zenkit::Read::from(buf);
+				Generic generic(in);
+				for (int i = 0; i < 6; ++i) {
+					CHECK_EQ(fast->read_line_then_ignore(chars), generic.read_line_then_ignore(chars));
+					CHECK_EQ(fast->tell(), generic.tell());
+				}
+			}
+		}
+	}
 }
 
 TEST_SUITE("Write") {
