@@ -286,6 +286,30 @@ namespace zenkit {
 				return _m_position >= _m_length;
 			}
 
+			// Same result as Read::read_line_then_ignore, but scans the buffer instead of reading one char at a time.
+			std::string read_line_then_ignore(std::string_view chars) noexcept override {
+				auto const* data = reinterpret_cast<char const*>(_m_bytes);
+				size_t it = _m_position;
+				while (it < _m_length && data[it] != '\0' && data[it] != '\r' && data[it] != '\n') ++it;
+
+				std::string str {data + _m_position, it - _m_position};
+				char const c = it < _m_length ? data[it] : '\0';
+				_m_position = it < _m_length ? it + 1 : _m_length;
+
+				if (chars.empty() || c == '\0' || eof()) return str;
+
+				it = _m_position;
+				while (it < _m_length && data[it] != '\0' && chars.find(data[it]) != std::string_view::npos) ++it;
+
+				// A trailing null byte at the very end is consumed, anything else is left for the next read.
+				if (it >= _m_length || (data[it] == '\0' && it + 1 == _m_length)) {
+					_m_position = _m_length;
+				} else {
+					_m_position = it;
+				}
+				return str;
+			}
+
 		private:
 			std::byte const* _m_bytes;
 			size_t _m_length, _m_position {0};
