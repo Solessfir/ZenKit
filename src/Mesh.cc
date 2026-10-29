@@ -331,8 +331,8 @@ namespace zenkit {
 						c->write_ushort(this->polygon_vertex_indices[poly.index_offset + i]);
 						c->write_uint(this->polygon_feature_indices[poly.index_offset + i]);
 					} else {
-						c->write_uint(this->polygons.vertex_indices[poly.index_offset + i]);
-						c->write_uint(this->polygons.feature_indices[poly.index_offset + i]);
+						c->write_uint(this->polygon_vertex_indices[poly.index_offset + i]);
+						c->write_uint(this->polygon_feature_indices[poly.index_offset + i]);
 					}
 				}
 			}

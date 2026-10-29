@@ -101,7 +101,7 @@ namespace zenkit {
 			w.write_float("rangeAniFPS", this->range_animation_fps);
 			w.write_bool("rangeAniSmooth", this->range_animation_smooth);
 
-			os.clear();
+			os.str({});
 			for (auto& c : this->color_animation_list) {
 				os << "(" << static_cast<int>(c.r) << " " << static_cast<int>(c.g) << " " << static_cast<int>(c.b)
 				   << ") ";

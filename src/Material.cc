@@ -116,7 +116,7 @@ namespace zenkit {
 			w.write_float("waveMaxAmplitude", this->wave_max_amplitude);
 			w.write_float("waveGridSize", this->wave_grid_size);
 			w.write_bool("ignoreSunLight", this->ignore_sun);
-			w.write_bool("alphaFunc", static_cast<bool>(this->alpha_func));
+			w.write_enum("alphaFunc", static_cast<uint32_t>(this->alpha_func));
 		}
 
 		w.write_vec2("defaultMapping", this->default_mapping);
