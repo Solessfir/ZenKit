@@ -106,7 +106,7 @@ namespace zenkit {
 			this->physics_enabled = static_cast<bool>((bit1 & 0b000000001000000u) >> 6u);
 
 			if (version == GameVersion::GOTHIC_2) {
-				this->anim_mode = static_cast<AnimationType>(bit1 & 0b000000110000000u >> 7u);
+				this->anim_mode = static_cast<AnimationType>((bit1 & 0b000000110000000u) >> 7u);
 				this->bias = static_cast<std::int32_t>((bit1 & 0b011111000000000u) >> 9u);
 				this->ambient = static_cast<bool>((bit1 & 0b100000000000000u) >> 14u);
 
@@ -226,21 +226,16 @@ namespace zenkit {
 			std::uint16_t bit1 = 0;
 			bit1 |= !preset_name.empty() << 0u;
 			bit1 |= !vob_name.empty() << 1u;
-			bit1 |= (this->visual && !this->visual->name.empty()) << 2u;
+			bit1 |= !visual_name.empty() << 2u;
 			bit1 |= (!!this->visual && this->visual->type != VisualType::UNKNOWN) << 3u;
 			bit1 |= (!!this->ai) << 4u;
 			bit1 |= (!!this->event_manager) << 5u;
 
-			// Gothic 1 does not store rigid-body information.
-			if (version == GameVersion::GOTHIC_1) {
-				bit1 |= this->physics_enabled << 6u;
-			} else {
-				bit1 |= (this->physics_enabled && this->rigid_body) << 6u;
-			}
+			bit1 |= this->physics_enabled << 6u;
 
 			if (version == GameVersion::GOTHIC_2) {
-				bit1 |= (static_cast<uint8_t>(this->anim_mode) & 2) << 7u;
-				bit1 |= (static_cast<uint8_t>(this->bias) & 0b11111) << 13u;
+				bit1 |= (static_cast<uint8_t>(this->anim_mode) & 3) << 7u;
+				bit1 |= (static_cast<uint8_t>(this->bias) & 0b11111) << 9u;
 				bit1 |= this->ambient << 14u;
 
 				pw->write_ushort(bit1);
@@ -251,6 +246,26 @@ namespace zenkit {
 			}
 
 			w.write_raw("dataRaw", packed);
+
+			if (!this->preset_name.empty()) {
+				w.write_string("presetName", this->preset_name);
+			}
+
+			if (!this->vob_name.empty()) {
+				w.write_string("vobName", this->vob_name);
+			}
+
+			if (!this->visual_name.empty()) {
+				w.write_string("visual", this->visual_name);
+			}
+
+			if (this->visual && this->visual->type != VisualType::UNKNOWN) {
+				w.write_object("visual", this->visual, version);
+			}
+
+			if (this->ai) {
+				w.write_object("ai", this->ai, version);
+			}
 		} else {
 			w.write_int("pack", 0);
 			w.write_string("presetName", this->preset_name);
@@ -280,27 +295,14 @@ namespace zenkit {
 			}
 		}
 
-		if (!this->preset_name.empty()) {
-			w.write_string("presetName", this->preset_name);
-		}
-
-		if (!this->vob_name.empty()) {
-			w.write_string("vobName", this->vob_name);
-		}
-
-		if (this->visual && !this->visual->name.empty()) {
-			w.write_string("visual", this->visual->name);
-		}
-
-		if (this->visual && this->visual->type != VisualType::UNKNOWN) {
-			w.write_object("visual", this->visual, version);
-		}
-
-		if (this->ai) {
+		if (!pack) {
+			// Unpacked VObs always carry both objects, empty ones included
+			bool const has_visual = this->visual && this->visual->type != VisualType::UNKNOWN;
+			w.write_object("visual", has_visual ? this->visual : nullptr, version);
 			w.write_object("ai", this->ai, version);
 		}
 
-		if (this->event_manager) {
+		if (this->event_manager && pack && w.is_save_game()) {
 			w.write_object(this->event_manager, version);
 		}
 
