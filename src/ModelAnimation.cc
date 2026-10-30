@@ -4,6 +4,7 @@
 #include "zenkit/Stream.hh"
 
 #include <math.h>
+#include <vector>
 
 namespace zenkit {
 	/// \brief The highest number representable by a single rotation component.
@@ -29,11 +30,11 @@ namespace zenkit {
 	/// \param minimum The value of the smallest position component in the animation (part of its header).
 	/// \return A vector containing the parsed position.
 	/// \see http://phoenix.gothickit.dev/engine/formats/animation/#sample-positions
-	static Vec3 read_sample_position(Read* r, float scale, float minimum) {
+	static Vec3 read_sample_position(std::uint16_t const* r, float scale, float minimum) {
 		Vec3 v {};
-		v.x = static_cast<float>(r->read_ushort()) * scale + minimum;
-		v.y = static_cast<float>(r->read_ushort()) * scale + minimum;
-		v.z = static_cast<float>(r->read_ushort()) * scale + minimum;
+		v.x = static_cast<float>(r[0]) * scale + minimum;
+		v.y = static_cast<float>(r[1]) * scale + minimum;
+		v.z = static_cast<float>(r[2]) * scale + minimum;
 		return v;
 	}
 
@@ -41,11 +42,11 @@ namespace zenkit {
 	/// \param r The stream to read from.
 	/// \return A quaternion containing the parsed rotation.
 	/// \see http://phoenix.gothickit.dev/engine/formats/animation/#sample-rotations
-	static Quat read_sample_quaternion(Read* r) {
+	static Quat read_sample_quaternion(std::uint16_t const* r) {
 		Quat v {};
-		v.x = (static_cast<float>(r->read_ushort()) - SAMPLE_ROTATION_MID) * SAMPLE_ROTATION_SCALE;
-		v.y = (static_cast<float>(r->read_ushort()) - SAMPLE_ROTATION_MID) * SAMPLE_ROTATION_SCALE;
-		v.z = (static_cast<float>(r->read_ushort()) - SAMPLE_ROTATION_MID) * SAMPLE_ROTATION_SCALE;
+		v.x = (static_cast<float>(r[0]) - SAMPLE_ROTATION_MID) * SAMPLE_ROTATION_SCALE;
+		v.y = (static_cast<float>(r[1]) - SAMPLE_ROTATION_MID) * SAMPLE_ROTATION_SCALE;
+		v.z = (static_cast<float>(r[2]) - SAMPLE_ROTATION_MID) * SAMPLE_ROTATION_SCALE;
 
 		float len_q = v.x * v.x + v.y * v.y + v.z * v.z;
 
@@ -120,9 +121,16 @@ namespace zenkit {
 				}
 
 				this->samples.resize(this->node_count * this->frame_count);
-				for (auto& i : this->samples) {
-					i.rotation = read_sample_quaternion(c);
-					i.position = read_sample_position(c, this->sample_position_scale, this->sample_position_min);
+				{
+					// One read for the whole block, six little-endian values per sample
+					std::vector<std::uint16_t> raw(this->samples.size() * 6);
+					c->read(raw.data(), raw.size() * sizeof(raw[0]));
+					for (size_t i = 0; i < this->samples.size(); ++i) {
+						this->samples[i].rotation = read_sample_quaternion(&raw[i * 6]);
+						this->samples[i].position = read_sample_position(&raw[i * 6 + 3],
+						                                                 this->sample_position_scale,
+						                                                 this->sample_position_min);
+					}
 				}
 
 				break;
