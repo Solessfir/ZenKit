@@ -215,6 +215,14 @@ namespace zenkit {
 		var int32_t bodystate_interruptable_override;
 		var int32_t no_focus;
 
+		// Not members of C_NPC. OpenGothic keeps here the members of oCNpc that the Ikarus layer lets the scripts read.
+		int32_t compat_focus_vob = 0;
+		int32_t compat_interact_mob = 0;
+		int32_t compat_magic_book = 0;
+		int32_t compat_bitfield[5] = {};
+		string compat_body_visual;
+		string compat_head_visual;
+
 		ZKAPI static void register_(DaedalusScript& s);
 	};
 

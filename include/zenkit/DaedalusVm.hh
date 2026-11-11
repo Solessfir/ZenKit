@@ -638,6 +638,10 @@ namespace zenkit {
 		///
 		/// \param sym The symbol to unsafe_call.
 		ZKAPI void unsafe_call(DaedalusSymbol const* sym);
+
+		/// Calls a script function, registered override, or external with arguments already on the stack.
+		/// The caller is responsible for consuming the return value, as with unsafe_call.
+		ZKAPI void invoke_function(DaedalusSymbol const* sym);
 		ZKAPI void unsafe_jump(uint32_t address);
 		ZKAPI std::shared_ptr<DaedalusInstance> unsafe_get_gi();
 		ZKAPI void unsafe_set_gi(std::shared_ptr<DaedalusInstance> i);
