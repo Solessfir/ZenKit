@@ -222,6 +222,7 @@ namespace zenkit {
 		int32_t compat_bitfield[5] = {};
 		string compat_body_visual;
 		string compat_head_visual;
+		int32_t compat_trafo[16] = {}; // zCVob.trafoObjToWorld: row-major floats as their bits, as Ikarus declares it
 
 		ZKAPI static void register_(DaedalusScript& s);
 	};
